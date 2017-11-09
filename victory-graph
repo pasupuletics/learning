@@ -1,0 +1,81 @@
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import ReactDOM from 'react-dom';
+import {VictoryPie, VictoryTheme, VictoryLegend, VictoryChart, VictoryTooltip, VictoryLabel } from 'victory'
+import './testbed.css';
+
+/**
+ * Your imports here. For example:
+ *
+ * import 'some-lib/lib/Typography/Typography.css';
+ * import {Button, BadgeButton} from 'some-lib';
+ *
+ */
+
+class CustomLabel extends React.Component {
+  static defaultEvents = VictoryTooltip.defaultEvents;
+  static propTypes = {text: PropTypes.string};
+
+  render() {
+    return (
+      <g>
+        <VictoryLabel {...this.props}/>
+        <VictoryTooltip
+          {...this.props}
+          text={`# ${this.props.text}`}
+          pointerLength={10}
+          cornerRadius={5}
+          flyoutStyle={{ fill: "black" }}
+        />
+      </g>
+    );
+  }
+}
+
+class App extends Component {
+  componentDidMount() {
+    // App is ready, show the page
+    document.body.classList.remove('tb-hidden');
+  }
+  render() {
+  const data = [
+            { x: "Cats", y: 35 },
+            { x: "Dogs", y: 40 },
+            { x: "Birds", y: 55 },
+            { x: "Birds", y: 55 },
+            { x: "Birds", y: 55 }
+          ];
+
+  console.log(VictoryTheme);
+    return (
+      <div>
+        <VictoryLegend
+          width={100}
+          gutter={20}
+          style={{ border: { stroke: "black" }, title: {fontSize: 20 }, width: 100 }}
+          events={[{
+            target: "data"
+          }]}
+          data={[
+            { name: "One" }, { name: "Two" }, { name: "Three" }
+          ]}
+        />
+        <VictoryPie
+          theme={VictoryTheme.material}
+          data={data}
+          innerRadius={50}
+          padAngle={2}
+          labelComponent={<CustomLabel/>}
+        />
+        <div>
+  <h3>Click Me</h3>
+
+
+</div>
+      </div>
+
+    );
+  }
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
