@@ -1,12 +1,7 @@
-return (
-			<div id="users-info">
-				<UsersList users={users}/>
-				<UsersChart 
-					data={users} 
-					chartSeries={chartSeries} 
-					width={300} 
-					height={300}
-					pieTextShow={false}
-				/>
-			</div>
-		);
+.react-d3-core__legend {
+	float: right !important;
+}
+.react-d3-core__legend .react-d3-core__legend {
+	display: block !important;
+	float: none !important;
+}
