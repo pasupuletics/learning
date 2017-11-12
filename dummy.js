@@ -102,7 +102,7 @@ export default class SPSPieChart extends Component {
 
     var tooltip = d3.select(`#${id}--piechart`)
       .append('div')
-      .attr('class', 'tooltip');
+      .attr('class', 'd3-pie--tooltip');
 
     tooltip.append('div')
       .attr('class', 'label');
@@ -213,8 +213,8 @@ export default class SPSPieChart extends Component {
         className='d3-pie-chart'
       >
         {title && <h1>{title}</h1>}
-        <div className="pie"></div>
-        <div className="legend"></div>
+        <div className='pie'></div>
+        <div className='legend'></div>
       </div>
     );
   }
@@ -230,5 +230,3 @@ SPSPieChart.defaultProps = {
 SPSPieChart.propTypes = {
   id: PropTypes.string.isRequired
 }
-
-//123
