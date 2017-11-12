@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import * as d3 from 'd3';
 
-export default class Pie extends Component {
+export default class SPSPieChart extends Component {
   componentDidMount() {
     this._renderPie();
   }
@@ -13,6 +13,7 @@ export default class Pie extends Component {
       width,
       height,
       value,
+      name,
       donutWidth,
       id
     }  = this.props;
@@ -59,7 +60,7 @@ export default class Pie extends Component {
       .append('path')
       .attr('d', arc)
       .attr('fill', function(d, i) {
-        return color(d.data.label);
+        return color(name(d.data));
       })
       .attr('class', 'arc-default')
       .each(function(d) { this._current = d; });
@@ -113,14 +114,14 @@ export default class Pie extends Component {
       .attr('class', 'percent');
     
     path.on('mouseover', function(d) {
-      var total = d3.sum(dataset.map(function(d) {
-        return d.count;
-      }));
+      var data = d.data;
+
+      var total = d3.sum(dataset.map(value));
 
       var percent = Math.round(1000 * d.data.count / total) / 10;
       
-      tooltip.select('.label').html(d.data.label);
-      tooltip.select('.count').html(d.data.count);
+      tooltip.select('.label').html(name(data));
+      tooltip.select('.count').html(value(data));
       tooltip.select('.percent').html(percent + '%');
       tooltip.style('display', 'block');
 
@@ -149,12 +150,12 @@ export default class Pie extends Component {
         .append('path')
         .attr('class', 'hover')
         .attr('d', arcOver)
-        .attr('fill', (d, i) => color(d.data.label))
-        .attr('stroke', (d, i) => color(d.data.label))
+        .attr('fill', (d, i) => color(name(d.data)))
+        .attr('stroke', (d, i) => color(name(d.data)))
         .attr('opacity', .3)
     });
 
-    path.on('click', function(a, b, c) {
+    path.on('click', function() {
       var arcSelected = d3.arc()
         .innerRadius(arcOR + 3)
         .outerRadius(selectedOR);
@@ -173,14 +174,14 @@ export default class Pie extends Component {
         .append('path')
         .attr('class', 'selected')
         .attr('d', arcSelected)
-        .attr('fill', (d, i) => color(d.data.label))
-        .attr('stroke', (d, i) => color(d.data.label))
+        .attr('fill', (d, i) => color(name(d.data)))
+        .attr('stroke', (d, i) => color(name(d.data)))
         .select(() => this.parentNode)
         .append('path')
         .attr('class', 'hover')
         .attr('d', arcOver)
-        .attr('fill', (d, i) => color(d.data.label))
-        .attr('stroke', (d, i) => color(d.data.label))
+        .attr('fill', (d, i) => color(name(d.data)))
+        .attr('stroke', (d, i) => color(name(d.data)))
         .attr('opacity', .3)
     })
 
@@ -219,45 +220,15 @@ export default class Pie extends Component {
   }
 }
 
-Pie.defaultProps = {
+SPSPieChart.defaultProps = {
   donutWidth: 50,
   value: (d) => {},
   name: (d) => {},
   title: ''
 }
 
-Pie.propTypes = {
+SPSPieChart.propTypes = {
   id: PropTypes.string.isRequired
 }
 
-
-      .d3-pie-chart {
-        display: inline-block;
-      }
-
-      .d3-pie-chart .tooltip {
-        background: #eee;
-        box-shadow: 0 0 5px #999999;
-        color: #333;
-        display: none;
-        font-size: 12px;
-        left: 130px;
-        padding: 10px;
-        position: absolute;
-        text-align: center;
-        top: 95px;
-        width: 80px;
-        z-index: 10;
-      }
-      .d3-pie-chart .legend {
-        font-size: 12px;
-      }
-
-      .d3-pie-chart .pie,
-      .d3-pie-chart .legend {
-        display: inline-block;
-      }
-      
-      .d3-pie-chart h1 {
-        font-size: 14px;
-      }
+//123
