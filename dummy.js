@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import * as d3 from 'd3';
 
 export default class Pie extends Component {
@@ -12,50 +13,66 @@ export default class Pie extends Component {
       width,
       height,
       value,
-      donutWidth
+      donutWidth,
+      id
     }  = this.props;
 
     var radius = Math.min(width, height) / 2;
     var color = d3.scaleOrdinal(d3.schemeCategory20b);
+    var rootSelector = `#${id}--piechart`;
 
-    var svg = d3.select('#pie')
+    var svg = d3.select(`${rootSelector} .pie`)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
       .append('g')
       .attr('transform', 'translate(' + (width / 2) +  ',' + (height / 2) + ')');
 
+    var arcOR = radius - 20;
+
     var arc = d3.arc()
       .innerRadius(radius - donutWidth)
-      .outerRadius(radius- 10);
+      .outerRadius(arcOR);
+
+    var selectedOR = arcOR + 5;
+
+    var arcSelected = d3.arc()
+      .innerRadius(arcOR + 5)
+      .outerRadius(selectedOR);
+
+    var hoverOR = selectedOR + 10;
 
     var arcOver = d3.arc()
-      .innerRadius(radius - donutWidth)
-      .outerRadius(radius - 7);
+      .innerRadius(selectedOR)
+      .outerRadius(hoverOR);
 
     var pie = d3.pie()
+      .padAngle(.02)
       .value(value)
       .sort(null);
 
-    var path = svg.selectAll('path')
+    var path = svg.selectAll('path.arc-default')
       .data(pie(dataset))
       .enter()
+      .append('g')
+      .attr('class', 'arc')
       .append('path')
       .attr('d', arc)
       .attr('fill', function(d, i) {
         return color(d.data.label);
       })
+      .attr('class', 'arc-default')
       .each(function(d) { this._current = d; });
 
-    var legendRectSize = 18;
+    var legendRectSize = 15;
     var legendSpacing = 4;
 
-    var svgLegend = d3.select('#legend-root')
+    var svgLegend = d3.select(`${rootSelector} .legend`)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
       .append('g')
-      .attr('transform', 'translate(' + (width / 2) +  ',' + (height / 2) + ')');
+      .attr('transform', `translate(50 , ${height / 2})`);
     
     var legend = svgLegend.selectAll('.legend')
       .data(color.domain())
@@ -82,17 +99,17 @@ export default class Pie extends Component {
       .attr('y', legendRectSize - legendSpacing)
       .text(function(d) { return d; });
 
-    var tooltip = d3.select('#chart')            // NEW
-      .append('div')                             // NEW
+    var tooltip = d3.select(`#${id}--piechart`)
+      .append('div')
       .attr('class', 'tooltip');
 
-    tooltip.append('div')                        // NEW
-      .attr('class', 'label');                   // NEW
+    tooltip.append('div')
+      .attr('class', 'label');
 
-    tooltip.append('div')                        // NEW
-      .attr('class', 'count');                   // NEW
+    tooltip.append('div')     
+      .attr('class', 'count');
 
-    tooltip.append('div')                        // NEW
+    tooltip.append('div')     
       .attr('class', 'percent');
     
     path.on('mouseover', function(d) {
@@ -107,18 +124,69 @@ export default class Pie extends Component {
       tooltip.select('.percent').html(percent + '%');
       tooltip.style('display', 'block');
 
-      path = path.data(pie(dataset));
-      d3.select(this).transition()
-        .duration(300)
-        .attr("d", arcOver);
+      var arcOver,
+        hasSelected;
+
+      hasSelected = d3.select(this)
+        .select(() => this.parentNode)
+        .select('.selected')
+        .node()
+
+      if(hasSelected) {
+        arcOver = d3.arc()
+          .innerRadius(selectedOR)
+          .outerRadius(hoverOR - 3);
+      } else {
+        arcOver = d3.arc()
+          .innerRadius(selectedOR - 5)
+          .outerRadius(hoverOR - 8);
+      }
+
+      svg.selectAll('.arc path.hover').remove();
+      
+      d3.select(this)
+        .select(() => this.parentNode)
+        .append('path')
+        .attr('class', 'hover')
+        .attr('d', arcOver)
+        .attr('fill', (d, i) => color(d.data.label))
+        .attr('stroke', (d, i) => color(d.data.label))
+        .attr('opacity', .3)
     });
+
+    path.on('click', function(a, b, c) {
+      var arcSelected = d3.arc()
+        .innerRadius(arcOR + 3)
+        .outerRadius(selectedOR);
+
+        var arcOver = d3.arc()
+          .innerRadius(selectedOR)
+          .outerRadius(hoverOR - 3);
+
+      svg.selectAll([
+        '.arc path.selected',
+        '.arc path.hover'
+        ]).remove();
+      
+      d3.select(this)
+        .select(() => this.parentNode)
+        .append('path')
+        .attr('class', 'selected')
+        .attr('d', arcSelected)
+        .attr('fill', (d, i) => color(d.data.label))
+        .attr('stroke', (d, i) => color(d.data.label))
+        .select(() => this.parentNode)
+        .append('path')
+        .attr('class', 'hover')
+        .attr('d', arcOver)
+        .attr('fill', (d, i) => color(d.data.label))
+        .attr('stroke', (d, i) => color(d.data.label))
+        .attr('opacity', .3)
+    })
 
     path.on('mouseout', function() {
       tooltip.style('display', 'none');
-
-      d3.select(this).transition()
-        .duration(1000)
-        .attr("d", arc);
+      svg.selectAll('.arc path.hover').remove();
     });
 
     path.on('mousemove', function(d) {
@@ -127,23 +195,25 @@ export default class Pie extends Component {
     });
 
     path.transition()
-        .duration(1000)
-        .attrTween('d', function(d) {
-            var interpolate = d3.interpolate({startAngle: 0, endAngle: 0}, d);
-            return function(t) {
-                return arc(interpolate(t));
-            };
-        });
-
+      .duration(1000)
+      .attrTween('d', function(d) {
+          var interpolate = d3.interpolate({startAngle: 0, endAngle: 0}, d);
+          return function(t) {
+              return arc(interpolate(t));
+          };
+      });
   }
   render() {
-    const title = this.props.title 
+    const {title, id} = this.props 
 
     return (
-      <div id="chart">
+      <div 
+        id={`${id}--piechart`}
+        className='d3-pie-chart'
+      >
         {title && <h1>{title}</h1>}
-        <div id="pie"></div>
-        <div id="legend-root"></div>
+        <div className="pie"></div>
+        <div className="legend"></div>
       </div>
     );
   }
@@ -155,3 +225,39 @@ Pie.defaultProps = {
   name: (d) => {},
   title: ''
 }
+
+Pie.propTypes = {
+  id: PropTypes.string.isRequired
+}
+
+
+      .d3-pie-chart {
+        display: inline-block;
+      }
+
+      .d3-pie-chart .tooltip {
+        background: #eee;
+        box-shadow: 0 0 5px #999999;
+        color: #333;
+        display: none;
+        font-size: 12px;
+        left: 130px;
+        padding: 10px;
+        position: absolute;
+        text-align: center;
+        top: 95px;
+        width: 80px;
+        z-index: 10;
+      }
+      .d3-pie-chart .legend {
+        font-size: 12px;
+      }
+
+      .d3-pie-chart .pie,
+      .d3-pie-chart .legend {
+        display: inline-block;
+      }
+      
+      .d3-pie-chart h1 {
+        font-size: 14px;
+      }
