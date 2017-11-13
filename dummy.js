@@ -9,7 +9,7 @@ export default class SPSPieChart extends Component {
 
   _renderPie() {
     const {
-      data:dataset,
+      data:_dataset,
       width,
       height,
       value,
@@ -18,16 +18,24 @@ export default class SPSPieChart extends Component {
       id
     }  = this.props;
 
-    var radius = Math.min(width, height) / 2;
-    var color = d3.scaleOrdinal(d3.schemeCategory20b);
-    var rootSelector = `#${id}--piechart`;
 
-    var svg = d3.select(`${rootSelector} .pie`)
+    const dataset = d3.nest()
+        .key(name)
+        .rollup((d) => d3.sum(d, value))
+        .entries(_dataset)
+        .map((g) => Object.create({ label: g.key, count: g.value }));
+
+    const radius = Math.min(width, height) / 2;
+    const color = d3.scaleOrdinal()
+                    .range(['#68c8d7','#eccd63','#bb8cdd','#de6942','#52b36e','#bbc7d9']);
+    const rootSelector = `#${id}--piechart`;
+
+    const svg = d3.select(`${rootSelector} .pie`)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
       .append('g')
-      .attr('transform', 'translate(' + (width / 2) +  ',' + (height / 2) + ')');
+      .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
     var arcOR = radius - 20;
 
@@ -59,11 +67,9 @@ export default class SPSPieChart extends Component {
       .attr('class', 'arc')
       .append('path')
       .attr('d', arc)
-      .attr('fill', function(d, i) {
-        return color(name(d.data));
-      })
+      .attr('fill', (d, i) => color(name(d.data)))
       .attr('class', 'arc-default')
-      .each(function(d) { this._current = d; });
+      .each((d) => this._current = d);
 
     var legendRectSize = 15;
     var legendSpacing = 4;
@@ -80,12 +86,12 @@ export default class SPSPieChart extends Component {
       .enter()
       .append('g')
       .attr('class', 'legend')
-      .attr('transform', function(d, i) {
+      .attr('transform', (d, i) => {
         var height = legendRectSize + legendSpacing;
         var offset =  height * color.domain().length / 2;
         var horz = -2 * legendRectSize;
         var vert = i * height - offset;
-        return 'translate(' + horz + ',' + vert + ')';
+        return `translate(${horz}, ${vert})`;
       });
 
     legend.append('rect')
@@ -98,7 +104,7 @@ export default class SPSPieChart extends Component {
     legend.append('text')
       .attr('x', legendRectSize + legendSpacing)
       .attr('y', legendRectSize - legendSpacing)
-      .text(function(d) { return d; });
+      .text((d) => d);
 
     var tooltip = d3.select(`#${id}--piechart`)
       .append('div')
@@ -122,7 +128,7 @@ export default class SPSPieChart extends Component {
       
       tooltip.select('.label').html(name(data));
       tooltip.select('.count').html(value(data));
-      tooltip.select('.percent').html(percent + '%');
+      tooltip.select('.percent').html(`${percent}%`);
       tooltip.style('display', 'block');
 
       var arcOver,
@@ -155,7 +161,7 @@ export default class SPSPieChart extends Component {
         .attr('opacity', .3)
     });
 
-    path.on('click', function() {
+    path.on('click', function(d) {
       var arcSelected = d3.arc()
         .innerRadius(arcOR + 3)
         .outerRadius(selectedOR);
@@ -185,25 +191,24 @@ export default class SPSPieChart extends Component {
         .attr('opacity', .3)
     })
 
-    path.on('mouseout', function() {
+    path.on('mouseout', (d) => {
       tooltip.style('display', 'none');
       svg.selectAll('.arc path.hover').remove();
     });
 
-    path.on('mousemove', function(d) {
-      tooltip.style('top', (d3.event.layerY + 10) + 'px')
-        .style('left', (d3.event.layerX + 10) + 'px');
+    path.on('mousemove', (d) => {
+      tooltip.style('top', `${d3.event.layerY + 10}px`)
+        .style('left', `${d3.event.layerX + 10}px`);
     });
 
     path.transition()
       .duration(1000)
-      .attrTween('d', function(d) {
+      .attrTween('d', (d) => {
           var interpolate = d3.interpolate({startAngle: 0, endAngle: 0}, d);
-          return function(t) {
-              return arc(interpolate(t));
-          };
+          return (t) => arc(interpolate(t));
       });
   }
+
   render() {
     const {title, id} = this.props 
 
