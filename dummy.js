@@ -1,237 +1,175 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
+import ReactDOM from 'react-dom';
+import Pie from './NewPie.jsx';
+import SPSPieChart from './SPSPieChart.jsx';
 import * as d3 from 'd3';
+import './testbed.css';
+/**
+ * Your imports here. For example:
+ *
+ * import 'some-lib/lib/Typography/Typography.css';
+ * import {Button, BadgeButton} from 'some-lib';
+ *
+ */
 
-export default class SPSPieChart extends Component {
+class App extends Component {
   componentDidMount() {
-    this._renderPie();
+    // App is ready, show the page
+    document.body.classList.remove('tb-hidden');
   }
 
-  _renderPie() {
-    const {
-      data:_dataset,
-      width,
-      height,
-      value,
-      name,
-      donutWidth,
-      id
-    }  = this.props;
-
-
-    const dataset = d3.nest()
-        .key(name)
-        .rollup((d) => d3.sum(d, value))
-        .entries(_dataset)
-        .map((g) => Object.create({ label: g.key, count: g.value }));
-
-    const radius = Math.min(width, height) / 2;
-    const color = d3.scaleOrdinal()
-                    .range(['#68c8d7','#eccd63','#bb8cdd','#de6942','#52b36e','#bbc7d9']);
-    const rootSelector = `#${id}--piechart`;
-
-    const svg = d3.select(`${rootSelector} .pie`)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-      .append('g')
-      .attr('transform', `translate(${width / 2}, ${height / 2})`);
-
-    var arcOR = radius - 20;
-
-    var arc = d3.arc()
-      .innerRadius(radius - donutWidth)
-      .outerRadius(arcOR);
-
-    var selectedOR = arcOR + 5;
-
-    var arcSelected = d3.arc()
-      .innerRadius(arcOR + 5)
-      .outerRadius(selectedOR);
-
-    var hoverOR = selectedOR + 10;
-
-    var arcOver = d3.arc()
-      .innerRadius(selectedOR)
-      .outerRadius(hoverOR);
-
-    var pie = d3.pie()
-      .padAngle(.02)
-      .value(value)
-      .sort(null);
-
-    var path = svg.selectAll('path.arc-default')
-      .data(pie(dataset))
-      .enter()
-      .append('g')
-      .attr('class', 'arc')
-      .append('path')
-      .attr('d', arc)
-      .attr('fill', (d, i) => color(name(d.data)))
-      .attr('class', 'arc-default')
-      .each((d) => this._current = d);
-
-    var legendRectSize = 15;
-    var legendSpacing = 4;
-
-    var svgLegend = d3.select(`${rootSelector} .legend`)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-      .append('g')
-      .attr('transform', `translate(50 , ${height / 2})`);
-    
-    var legend = svgLegend.selectAll('.legend')
-      .data(color.domain())
-      .enter()
-      .append('g')
-      .attr('class', 'legend')
-      .attr('transform', (d, i) => {
-        var height = legendRectSize + legendSpacing;
-        var offset =  height * color.domain().length / 2;
-        var horz = -2 * legendRectSize;
-        var vert = i * height - offset;
-        return `translate(${horz}, ${vert})`;
-      });
-
-    legend.append('rect')
-      .attr('width', legendRectSize)
-      .attr('height', legendRectSize)
-      .style('rx', legendRectSize)
-      .style('fill', color)
-      .style('stroke', color);
-
-    legend.append('text')
-      .attr('x', legendRectSize + legendSpacing)
-      .attr('y', legendRectSize - legendSpacing)
-      .text((d) => d);
-
-    var tooltip = d3.select(`#${id}--piechart`)
-      .append('div')
-      .attr('class', 'd3-pie--tooltip');
-
-    tooltip.append('div')
-      .attr('class', 'label');
-
-    tooltip.append('div')     
-      .attr('class', 'count');
-
-    tooltip.append('div')     
-      .attr('class', 'percent');
-    
-    path.on('mouseover', function(d) {
-      var data = d.data;
-
-      var total = d3.sum(dataset.map(value));
-
-      var percent = Math.round(1000 * d.data.count / total) / 10;
-      
-      tooltip.select('.label').html(name(data));
-      tooltip.select('.count').html(value(data));
-      tooltip.select('.percent').html(`${percent}%`);
-      tooltip.style('display', 'block');
-
-      var arcOver,
-        hasSelected;
-
-      hasSelected = d3.select(this)
-        .select(() => this.parentNode)
-        .select('.selected')
-        .node()
-
-      if(hasSelected) {
-        arcOver = d3.arc()
-          .innerRadius(selectedOR)
-          .outerRadius(hoverOR - 3);
-      } else {
-        arcOver = d3.arc()
-          .innerRadius(selectedOR - 5)
-          .outerRadius(hoverOR - 8);
-      }
-
-      svg.selectAll('.arc path.hover').remove();
-      
-      d3.select(this)
-        .select(() => this.parentNode)
-        .append('path')
-        .attr('class', 'hover')
-        .attr('d', arcOver)
-        .attr('fill', (d, i) => color(name(d.data)))
-        .attr('stroke', (d, i) => color(name(d.data)))
-        .attr('opacity', .3)
-    });
-
-    path.on('click', function(d) {
-      var arcSelected = d3.arc()
-        .innerRadius(arcOR + 3)
-        .outerRadius(selectedOR);
-
-        var arcOver = d3.arc()
-          .innerRadius(selectedOR)
-          .outerRadius(hoverOR - 3);
-
-      svg.selectAll([
-        '.arc path.selected',
-        '.arc path.hover'
-        ]).remove();
-      
-      d3.select(this)
-        .select(() => this.parentNode)
-        .append('path')
-        .attr('class', 'selected')
-        .attr('d', arcSelected)
-        .attr('fill', (d, i) => color(name(d.data)))
-        .attr('stroke', (d, i) => color(name(d.data)))
-        .select(() => this.parentNode)
-        .append('path')
-        .attr('class', 'hover')
-        .attr('d', arcOver)
-        .attr('fill', (d, i) => color(name(d.data)))
-        .attr('stroke', (d, i) => color(name(d.data)))
-        .attr('opacity', .3)
-    })
-
-    path.on('mouseout', (d) => {
-      tooltip.style('display', 'none');
-      svg.selectAll('.arc path.hover').remove();
-    });
-
-    path.on('mousemove', (d) => {
-      tooltip.style('top', `${d3.event.layerY + 10}px`)
-        .style('left', `${d3.event.layerX + 10}px`);
-    });
-
-    path.transition()
-      .duration(1000)
-      .attrTween('d', (d) => {
-          var interpolate = d3.interpolate({startAngle: 0, endAngle: 0}, d);
-          return (t) => arc(interpolate(t));
-      });
+  _value(d) {
+    return d.count;
+  }
+  _name(d) {
+    return d.label;
+  }
+  _mappedObject(g) {
+    return Object.create({ label: g.key, count: g.value })
   }
 
   render() {
-    const {title, id} = this.props 
+    var dataset = [
+      { label: 'Abulia', count: 10, test: 'TEST' },
+      { label: 'Betelgeuse', count: 20, test: 'TEST' },
+      { label: 'Cantaloupe', count: 30, test: 'TEST' },
+      { label: 'Dijkstra', count: 40, test: 'TEST' },
+      { label: 'Abulia', count: 10, test: 'TEST' },
+      { label: 'Betelgeuse', count: 20, test: 'TEST' },
+      { label: 'Cantaloupe', count: 30, test: 'TEST' },
+      { label: 'Dijkstra', count: 40, test: 'TEST' },
+      { label: 'Abulia', count: 10, test: 'TEST' },
+      { label: 'Betelgeuse', count: 20, test: 'TEST' },
+      { label: 'Cantaloupe', count: 30, test: 'TEST' },
+      { label: 'Dijkstra', count: 40, test: 'TEST' },
+      { label: 'Abulia', count: 10, test: 'TEST' },
+      { label: 'Betelgeuse', count: 20, test: 'TEST' },
+      { label: 'Cantaloupe', count: 30, test: 'TEST' },
+      { label: 'Dijkstra', count: 40, test: 'TEST' },
+      { label: 'Abulia', count: 10, test: 'TEST' },
+      { label: 'Betelgeuse', count: 20, test: 'TEST' },
+      { label: 'Cantaloupe', count: 30, test: 'TEST' },
+      { label: 'Dijkstra', count: 40, test: 'TEST' },
+      { label: 'Abulia', count: 10, test: 'TEST' },
+      { label: 'Betelgeuse', count: 20, test: 'TEST' },
+      { label: 'Cantaloupe', count: 30, test: 'TEST' },
+      { label: 'Dijkstra', count: 40, test: 'TEST' },
+      { label: 'Hello', count: 1000, test: 'TEST' }
+    ];
+
+    const hoverChart = () => {
+      return (
+        <SPSPieChart
+          data= {dataset}
+          width= {150}
+          height= {150}
+          value= {this._value}
+          name= {this._name}
+          id= 'hover-donut-one'
+          mappedObject={this._mappedObject}
+          enableLegend={false}
+        />
+      );      
+    }
 
     return (
-      <div 
-        id={`${id}--piechart`}
-        className='d3-pie-chart'
-      >
-        {title && <h1>{title}</h1>}
-        <div className='pie'></div>
-        <div className='legend'></div>
+      <div>
+        <HoverPopup
+          hoverContent={hoverChart}
+        >
+          <table>
+            <tbody>
+            {
+              dataset.map((d, i) => 
+                <tr key={i} data-index={i} className='row'>
+                  <td>{d.label}</td>
+                  <td>{d.count}</td>
+                  <td>{d.test}</td>
+                </tr>
+              )
+            }
+            </tbody>
+          </table>
+        </HoverPopup>
       </div>
     );
   }
 }
 
-SPSPieChart.defaultProps = {
-  donutWidth: 50,
-  value: (d) => {},
-  name: (d) => {},
-  title: ''
+class HoverPopup extends Component{
+  constructor(props) {
+    super(props);
+    
+    this.state = { 
+      x: 0,
+      y: 0,
+      visible: false
+    };
+
+    this.onMouseEnterHandler = this.onMouseEnterHandler.bind(this)
+    this.onMouseLeaveHandler = this.onMouseLeaveHandler.bind(this)
+    this.onMouseMoveHandler = this.onMouseMoveHandler.bind(this)
+  }
+  onMouseEnterHandler(e) {
+    //console.log(this.hoveredEl);
+    this.setState({visible: true});   
+  }
+  onMouseLeaveHandler() {
+    //console.log(this.hoveredEl);
+    this.setState({visible: false});   
+  }
+  onMouseMoveHandler(e) {
+    const target = e.target;
+
+    /*if(target.nodeName.toLowerCase() === 'td' && target.parentNode.className.indexOf('row') > -1) {
+      console.log(d3.select(target.parentNode));
+    }*/
+
+    this.setState({ x: e.pageX + 10, y: e.pageY + 10 });
+  }
+  render() {
+    const {hoverContent:HoverContent} = this.props;
+    const {x, y, visible} = this.state;
+    const style = {
+      position:'absolute',
+      top: `${y}px`,
+      left: `${x}px`,
+      zIndex: 9999,
+      display: visible? 'inline-block' : 'none'
+    };
+
+    return (
+      <div 
+        onMouseEnter={this.onMouseEnterHandler}
+        onMouseLeave={this.onMouseLeaveHandler}
+        onMouseMove={this.onMouseMoveHandler}
+        className='widget-hover-popup'
+      >
+        <div
+          className='hover-popup-container' 
+          style={style}
+          ref={(hoveredEl)=> {this.hoveredEl = hoveredEl}}
+        >
+          <HoverContent />
+        </div>
+        {React.cloneElement(this.props.children, [...this.props])}
+      </div>
+    );
+  }
 }
 
-SPSPieChart.propTypes = {
-  id: PropTypes.string.isRequired
-}
+ReactDOM.render(<App />, document.getElementById('root'));
+
+
+---------------------------
+        .widget-hover-popup {
+        display: inline-block;
+      }
+      .widget-hover-popup .hover-popup-container {
+        background: #FFF;
+        border: 1px solid #DDD;
+        border-radius: 7px;
+        -webkit-box-shadow: 0px 0px 25px 1px rgba(0,0,0,0.75);
+        -moz-box-shadow: 0px 0px 25px 1px rgba(0,0,0,0.75);
+        box-shadow: 0px 0px 25px 1px rgba(0,0,0,0.75);
+      }
